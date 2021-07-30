@@ -1,10 +1,11 @@
 from pprint import pprint
-from typing import List, Any, AnyStr
+from typing import List, Any, AnyStr, Union
 
 from waapi import WaapiClient, CannotConnectToWaapiException
 
 
-class WaTools:
+class WaClient(WaapiClient):
+    FUNC_GET_INFO = 'ak.wwise.core.getInfo'
     FUNC_GET_SELECTED = 'ak.wwise.ui.getSelectedObjects'
     FUNC_GET = 'ak.wwise.core.object.get'
     FUNC_CREATE = 'ak.wwise.core.object.create'
@@ -35,12 +36,18 @@ class WaTools:
         ]
     }
 
-    def __init__(self, client: WaapiClient):
-        self.client = client
+    def __init__(self):
+        super().__init__()
+
+    def get_info(self):
+        result = self.call(self.FUNC_GET_INFO)
+        version = result['version']['displayName']
+        print(f'Wwise版本：{version}')
+        return version
 
     def get_selected(self) -> List:
         """获取选中的对象列表，可多选"""
-        result = self.client.call(self.FUNC_GET_SELECTED, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET_SELECTED, options=self.GET_SELECTED_OPTIONS)
         return result['objects']
 
     def get_selected_id(self) -> List:
@@ -53,7 +60,7 @@ class WaTools:
     def get_obj_by_id(self, id_list: List):
         """通过 ID列表，获取对象列表，适用于已知 ID，其他未知的情况"""
         args = {'from': {'id': id_list}}
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_parent_matches(self, id_list: List, name_pattern='.+') -> List:
@@ -70,7 +77,7 @@ class WaTools:
                 {'where': ['name:matches', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_ancestors_matches(self, id_list: List, name_pattern='.+') -> List:
@@ -87,7 +94,7 @@ class WaTools:
                 {'where': ['name:matches', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_children_matches(self, id_list: List, name_pattern='.+') -> List:
@@ -104,7 +111,7 @@ class WaTools:
                 {'where': ['name:matches', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_descendants_matches(self, id_list: List, name_pattern='.+') -> List:
@@ -121,7 +128,7 @@ class WaTools:
                 {'where': ['name:matches', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_parent_contains(self, id_list: List, name_pattern='') -> List:
@@ -138,7 +145,7 @@ class WaTools:
                 {'where': ['name:contains', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_ancestors_contains(self, id_list: List, name_pattern='') -> List:
@@ -155,7 +162,7 @@ class WaTools:
                 {'where': ['name:contains', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_children_contains(self, id_list: List, name_pattern='') -> List:
@@ -172,7 +179,7 @@ class WaTools:
                 {'where': ['name:contains', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_descendants_contains(self, id_list: List, name_pattern='') -> List:
@@ -189,7 +196,7 @@ class WaTools:
                 {'where': ['name:contains', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_type_matches(self, _type: AnyStr, name_pattern='.+') -> List:
@@ -205,7 +212,7 @@ class WaTools:
                 {'where': ['name:matches', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
 
     def get_type_contains(self, _type: AnyStr, name_pattern='') -> List:
@@ -221,12 +228,18 @@ class WaTools:
                 {'where': ['name:contains', name_pattern]}
             ]
         }
-        result = self.client.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
+        result = self.call(self.FUNC_GET, args, options=self.GET_SELECTED_OPTIONS)
         return result['return']
+
+    def create_from_path(self, path: str):
+        pass
 
 
 if __name__ == '__main__':
-    with WaapiClient() as client:
-        t = WaTools(client)
-        id_list = t.get_selected_id()
-        pprint(t.get_children_contains(id_list))
+    try:
+        with WaClient() as client:
+            client.get_info()
+    except CannotConnectToWaapiException:
+        print('waapi连接失败！')
+    except Exception as e:
+        print(f'出错啦！{e}')
